@@ -97,6 +97,16 @@ impl<T> LeVec<T> {
             None
         }
     }
+
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len > 0 {
+            self.len -= 1;
+            //SAFETY: self.len is greater than 0
+            unsafe { Some(self.ptr.as_ptr().add(self.len).read()) }
+        } else {
+            None
+        }
+    }
 }
 
 impl<T> Index<usize> for LeVec<T> {
@@ -141,6 +151,15 @@ impl<T> Iterator for LeVec<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a LeVec<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        //SAFETY: self.ptr is non-null
+        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr(), self.len).iter() }
+    }
+}
 #[cfg(test)]
 mod test {
 
@@ -169,8 +188,18 @@ mod test {
         assert_eq!(vec.len(), 7);
         assert_eq!(vec.capacity(), 8);
 
+        vec.pop();
+        vec.pop();
+
+        assert_eq!(vec.len(), 5);
+        assert_eq!(vec.capacity(), 8);
+
+        for value in &vec {
+            println!("&iter {:?}", value);
+        }
+
         for value in vec {
-            println!("{:?}", value);
+            println!("iter {:?}", value);
         }
     }
 }
